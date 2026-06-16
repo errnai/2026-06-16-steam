@@ -1,0 +1,1828 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>オンライン買い物コンシェルジュ「ウメさん」</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter & Zen Maru Gothic -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Zen Maru Gothic', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#fcf8f2',
+                            100: '#f7edde',
+                            200: '#eedabf',
+                            300: '#e0bf96',
+                            400: '#d09f6e',
+                            500: '#c2834f',
+                            600: '#b36d40',
+                            700: '#955434',
+                            800: '#79432e',
+                            900: '#623829',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #fcfaf7;
+            font-family: 'Inter', 'Zen Maru Gothic', sans-serif;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f7edde;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #d09f6e;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #b36d40;
+        }
+        /* Speech Bubble Tail */
+        .bubble-left::after {
+            content: '';
+            position: absolute;
+            left: -8px;
+            top: 16px;
+            width: 0;
+            height: 0;
+            border: 8px solid transparent;
+            border-right-color: #ffffff;
+            border-left: 0;
+            border-top: 0;
+        }
+        /* Pulse Animation */
+        .pulse-soft {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: .8; transform: scale(1.03); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col text-slate-800">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-brand-200 sticky top-0 z-40 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-brand-500 text-white p-2.5 rounded-full shadow-md flex items-center justify-center">
+                    <i class="fa-solid fa-hands-holding-child text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg text-brand-900 leading-tight flex items-center gap-1.5">
+                        <span>買い物コンシェルジュ「ウメさん」</span>
+                        <span class="text-xs bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full border border-brand-300 font-normal">
+                            地方のお買い物応援ツール
+                        </span>
+                    </h1>
+                    <p class="text-xs text-slate-500">アパレル・家具・小物まで「家から一歩も出ずに」絶対失敗しない！</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                <!-- User Location Badge -->
+                <div class="hidden sm:flex items-center bg-brand-50 text-brand-800 text-xs px-3 py-1.5 rounded-lg border border-brand-200">
+                    <i class="fa-solid fa-location-dot text-brand-600 mr-1.5"></i>
+                    <span>現在地: <strong>鳥取県 鳥取市近郊</strong></span>
+                </div>
+                <!-- Profile Indicator -->
+                <div class="flex items-center space-x-2 bg-slate-50 p-1.5 rounded-full border border-slate-200">
+                    <img id="avatar-img" src="https://placehold.co/100x100/eedabf/79432e?text=My" alt="User avatar" class="w-8 h-8 rounded-full border border-brand-300 object-cover">
+                    <span class="text-xs font-semibold pr-2 hidden md:inline text-slate-700" id="user-name-display">マイデータ</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-2 sm:px-4 py-4 md:py-6 grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
+        
+        <!-- Left Column: User Profile & Size Configurator (4 Cols) -->
+        <div class="lg:col-span-4 flex flex-col gap-4">
+            
+            <!-- Tab Navigation for Left Sidebar -->
+            <div class="bg-white p-1 rounded-xl border border-brand-200 shadow-sm flex">
+                <button id="nav-profile-btn" onclick="switchLeftTab('profile')" class="flex-1 py-2 text-xs md:text-sm font-semibold rounded-lg text-brand-800 bg-brand-100 border border-brand-200 transition-all">
+                    <i class="fa-solid fa-ruler-combined mr-1"></i>マイサイズ
+                </button>
+                <button id="nav-measure-btn" onclick="switchLeftTab('measure')" class="flex-1 py-2 text-xs md:text-sm font-semibold rounded-lg text-slate-500 hover:text-brand-700 transition-all">
+                    <i class="fa-solid fa-camera mr-1"></i>スマホで自動計測
+                </button>
+            </div>
+
+            <!-- TAB CONTENT: MY SIZE PROFILE -->
+            <div id="left-tab-profile" class="bg-white rounded-2xl border border-brand-200 shadow-sm p-4 md:p-5 flex flex-col gap-4">
+                <div class="flex items-center justify-between border-b border-brand-100 pb-2">
+                    <h2 class="font-bold text-brand-900 flex items-center gap-2">
+                        <i class="fa-solid fa-user-gear text-brand-500"></i>
+                        <span>あなたのデータ登録</span>
+                    </h2>
+                    <span class="text-[10px] text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded border border-brand-200 font-bold">
+                        全ジャンル対応
+                    </span>
+                </div>
+
+                <!-- Profile Basic Inputs -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">お名前 (ニックネーム)</label>
+                        <input type="text" id="user-name" value="お買い物っ子" class="w-full text-sm border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-400 bg-slate-50 transition-all" onchange="updateProfileName()">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">お住まいエリア</label>
+                        <select id="user-region" class="w-full text-sm border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-400 bg-slate-50 transition-all" onchange="updateRegionAds()">
+                            <option value="tottori">鳥取県（鳥取市近郊）</option>
+                            <option value="shimane">島根県（山陰地方）</option>
+                            <option value="hokkaido">北海道（郊外・郡部）</option>
+                            <option value="kyushu">九州地方（山間部）</option>
+                            <option value="tohoku">東北地方（豪雪地帯）</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Category Sub-Tabs inside Sidebar -->
+                <div class="flex border-b border-slate-100 text-xs">
+                    <button id="subtab-apparel" onclick="switchMySizeSubtab('apparel')" class="flex-1 py-1.5 border-b-2 border-brand-500 text-brand-900 font-bold">
+                        👔 服・体型
+                    </button>
+                    <button id="subtab-furniture" onclick="switchMySizeSubtab('furniture')" class="flex-1 py-1.5 border-b-2 border-transparent text-slate-400 hover:text-slate-600">
+                        🛋️ 家具・お部屋
+                    </button>
+                    <button id="subtab-goods" onclick="switchMySizeSubtab('goods')" class="flex-1 py-1.5 border-b-2 border-transparent text-slate-400 hover:text-slate-600">
+                        🎒 小物・その他
+                    </button>
+                </div>
+
+                <!-- Sub-tab contents -->
+                <!-- 1. Apparel Sizes -->
+                <div id="subtab-content-apparel" class="space-y-3">
+                    <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">採寸データ (cm)</h3>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="bg-slate-50 p-2 rounded-lg border border-slate-200 text-center">
+                            <span class="block text-[10px] text-slate-500">身長</span>
+                            <input type="number" id="size-height" value="165" class="w-full text-center font-bold text-brand-900 bg-transparent text-sm focus:outline-none" onchange="updateAndDraw()">
+                            <span class="text-[10px] text-slate-400">cm</span>
+                        </div>
+                        <div class="bg-slate-50 p-2 rounded-lg border border-slate-200 text-center">
+                            <span class="block text-[10px] text-slate-500">体重</span>
+                            <input type="number" id="size-weight" value="58" class="w-full text-center font-bold text-brand-900 bg-transparent text-sm focus:outline-none" onchange="updateAndDraw()">
+                            <span class="text-[10px] text-slate-400">kg</span>
+                        </div>
+                        <div class="bg-slate-50 p-2 rounded-lg border border-slate-200 text-center">
+                            <span class="block text-[10px] text-slate-500">肩幅</span>
+                            <input type="number" id="size-shoulder" value="44" class="w-full text-center font-bold text-brand-900 bg-transparent text-sm focus:outline-none" onchange="updateAndDraw()">
+                            <span class="text-[10px] text-slate-400">cm</span>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="bg-slate-50 p-2 rounded-lg border border-slate-200 text-center">
+                            <span class="block text-[10px] text-slate-500">身幅 (胸囲/2)</span>
+                            <input type="number" id="size-chest" value="48" class="w-full text-center font-bold text-brand-900 bg-transparent text-sm focus:outline-none" onchange="updateAndDraw()">
+                            <span class="text-[10px] text-slate-400">cm</span>
+                        </div>
+                        <div class="bg-slate-50 p-2 rounded-lg border border-slate-200 text-center">
+                            <span class="block text-[10px] text-slate-500">着丈</span>
+                            <input type="number" id="size-length" value="66" class="w-full text-center font-bold text-brand-900 bg-transparent text-sm focus:outline-none" onchange="updateAndDraw()">
+                            <span class="text-[10px] text-slate-400">cm</span>
+                        </div>
+                        <div class="bg-slate-50 p-2 rounded-lg border border-slate-200 text-center">
+                            <span class="block text-[10px] text-slate-500">袖丈</span>
+                            <input type="number" id="size-sleeve" value="59" class="w-full text-center font-bold text-brand-900 bg-transparent text-sm focus:outline-none" onchange="updateAndDraw()">
+                            <span class="text-[10px] text-slate-400">cm</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Furniture Sizes -->
+                <div id="subtab-content-furniture" class="space-y-3 hidden">
+                    <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">お部屋の許容スペース (cm)</h3>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="bg-slate-50 p-2 rounded-lg border border-slate-200 text-center">
+                            <span class="block text-[10px] text-slate-500">設置可能 幅</span>
+                            <input type="number" id="room-width" value="200" class="w-full text-center font-bold text-brand-900 bg-transparent text-sm focus:outline-none" onchange="updateAndDraw()">
+                            <span class="text-[10px] text-slate-400">cm</span>
+                        </div>
+                        <div class="bg-slate-50 p-2 rounded-lg border border-slate-200 text-center">
+                            <span class="block text-[10px] text-slate-500">設置可能 奥行</span>
+                            <input type="number" id="room-depth" value="100" class="w-full text-center font-bold text-brand-900 bg-transparent text-sm focus:outline-none" onchange="updateAndDraw()">
+                            <span class="text-[10px] text-slate-400">cm</span>
+                        </div>
+                        <div class="bg-slate-50 p-2 rounded-lg border border-slate-200 text-center">
+                            <span class="block text-[10px] text-slate-500">設置可能 高さ</span>
+                            <input type="number" id="room-height" value="120" class="w-full text-center font-bold text-brand-900 bg-transparent text-sm focus:outline-none" onchange="updateAndDraw()">
+                            <span class="text-[10px] text-slate-400">cm</span>
+                        </div>
+                    </div>
+                    <p class="text-[10px] text-amber-700 bg-amber-50 p-2 rounded border border-amber-100 leading-relaxed">
+                        🛋️ 家具を置く予定の壁面スペースや、玄関の幅（搬入可能ルート）を測っておくと安心やで。
+                    </p>
+                </div>
+
+                <!-- 3. Goods Sizes -->
+                <div id="subtab-content-goods" class="space-y-3 hidden">
+                    <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">その他の寸法 (cm)</h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="bg-slate-50 p-2 rounded-lg border border-slate-200 text-center">
+                            <span class="block text-[10px] text-slate-500">いつもの足長(靴)</span>
+                            <input type="number" id="size-foot" value="24.5" step="0.5" class="w-full text-center font-bold text-brand-900 bg-transparent text-sm focus:outline-none" onchange="updateAndDraw()">
+                            <span class="text-[10px] text-slate-400">cm</span>
+                        </div>
+                        <div class="bg-slate-50 p-2 rounded-lg border border-slate-200 text-center">
+                            <span class="block text-[10px] text-slate-500">お好みのバッグ容量</span>
+                            <input type="number" id="size-backpack" value="20" class="w-full text-center font-bold text-brand-900 bg-transparent text-sm focus:outline-none" onchange="updateAndDraw()">
+                            <span class="text-[10px] text-slate-400">リットル(L)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Silhouette Visualizer Box -->
+                <div class="border border-brand-100 rounded-xl p-3 bg-brand-50 flex items-center justify-between">
+                    <div class="space-y-1">
+                        <span class="text-xs font-bold text-brand-800 font-sans">おうちデータの登録状況</span>
+                        <p class="text-[11px] text-brand-600 leading-relaxed">
+                            「普通体型」「ソファー想定幅200cm以下」<br>現在地: <strong>山陰・鳥取エリア</strong>
+                        </p>
+                    </div>
+                    <div class="w-12 h-12 bg-white border border-brand-200 rounded-lg flex items-center justify-center text-brand-500 text-xl">
+                        <i class="fa-solid fa-house-laptop"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB CONTENT: CAMERA AUTOMATIC MEASUREMENT SIMULATOR -->
+            <div id="left-tab-measure" class="bg-white rounded-2xl border border-brand-200 shadow-sm p-4 md:p-5 flex flex-col gap-4 hidden">
+                <div class="border-b border-brand-100 pb-3">
+                    <h2 class="font-bold text-brand-900 flex items-center gap-2">
+                        <i class="fa-solid fa-camera text-brand-500"></i>
+                        <span>AIスマホ自動計測シム</span>
+                    </h2>
+                    <p class="text-xs text-slate-500 mt-1">
+                        お持ちの服、または家具を置くスペースに向けて写真を撮るだけでAI自動計測！
+                    </p>
+                </div>
+
+                <!-- Simulating Camera Viewfinder -->
+                <div class="relative aspect-video rounded-xl overflow-hidden border border-slate-300 bg-slate-900 flex flex-col items-center justify-center">
+                    <video id="camera-stream" class="w-full h-full object-cover hidden" autoplay playsinline muted></video>
+                    <div id="camera-placeholder" class="text-center p-4">
+                        <i class="fa-solid fa-box text-brand-300 text-4xl mb-2 animate-bounce"></i>
+                        <p class="text-xs text-slate-300">「対象をカメラに写してください」</p>
+                        <p class="text-[10px] text-slate-400 mt-1">洋服、または家具スペースの端を認識します</p>
+                    </div>
+                    <div class="absolute inset-4 border border-dashed border-white/50 rounded-lg pointer-events-none flex items-center justify-center">
+                        <span class="text-[10px] text-white/75 bg-black/40 px-2 py-0.5 rounded">輪郭を枠内に合わせてね</span>
+                    </div>
+                    <div id="scan-line" class="absolute top-0 left-0 w-full h-0.5 bg-green-400 shadow-md shadow-green-400/50 hidden"></div>
+                </div>
+
+                <!-- Camera Actions -->
+                <div class="flex gap-2">
+                    <button id="btn-start-camera" onclick="startCameraSim()" class="flex-1 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all">
+                        <i class="fa-solid fa-video"></i> カメラを起動
+                    </button>
+                    <button id="btn-capture" onclick="captureMeasurement()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all" disabled>
+                        <i class="fa-solid fa-circle-dot text-red-500"></i> パシャリ
+                    </button>
+                </div>
+
+                <!-- Measurement Demo Trigger -->
+                <div class="border-t border-slate-100 pt-3 flex flex-col gap-2">
+                    <span class="text-xs font-bold text-slate-500">【お手軽体験】サンプル写真で試す</span>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="simulatePhotoMeasurement('jacket')" class="bg-brand-50 hover:bg-brand-100 text-brand-800 text-xs py-1.5 px-2 rounded border border-brand-200 flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-file-image"></i> ジャケット(服)
+                        </button>
+                        <button onclick="simulatePhotoMeasurement('sofa')" class="bg-brand-50 hover:bg-brand-100 text-brand-800 text-xs py-1.5 px-2 rounded border border-brand-200 flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-file-image"></i> リビング(ソファ空き)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Processing Message -->
+                <div id="measurement-result-alert" class="hidden bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs p-3 rounded-xl flex items-start gap-2">
+                    <i class="fa-solid fa-circle-check text-emerald-600 mt-0.5"></i>
+                    <div id="measurement-result-text">
+                        AI測定に成功しました！
+                    </div>
+                </div>
+            </div>
+
+            <!-- Local Helpful Ads Section -->
+            <div id="local-ads-panel" class="bg-white rounded-2xl border border-emerald-200 shadow-sm p-4 flex flex-col gap-3">
+                <div class="flex items-center gap-1.5 text-emerald-800">
+                    <i class="fa-solid fa-truck-fast"></i>
+                    <h3 class="font-bold text-xs">地方配送おトク＆あんしん情報</h3>
+                </div>
+                
+                <!-- Dynamic Local Ad Container -->
+                <div id="active-ad-box" class="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 rounded-xl p-3 relative overflow-hidden transition-all duration-300">
+                    <span class="absolute top-1 right-1 text-[8px] bg-emerald-200 text-emerald-800 px-1 rounded uppercase font-bold">PR</span>
+                    <div id="ad-content" class="space-y-1.5">
+                        <h4 class="font-bold text-xs text-emerald-900 leading-tight">鳥取県全域・送料無料キャンペーン！</h4>
+                        <p class="text-[10px] text-emerald-700 leading-relaxed">
+                            近くに大型家具店やセレクトECが無い？安心してください！コンシェルジュ提携モールなら、<strong>家具もアパレルも3,000円以上でどこでも送料無料。</strong>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Returns Support Ad -->
+                <div class="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-100 rounded-xl p-3 relative overflow-hidden">
+                    <span class="absolute top-1 right-1 text-[8px] bg-amber-200 text-amber-800 px-1 rounded uppercase font-bold">PR</span>
+                    <div class="space-y-1">
+                        <h4 class="font-bold text-xs text-amber-900 leading-tight">家具も服も、集荷業者が自宅玄関まで引き取り！</h4>
+                        <p class="text-[10px] text-amber-700 leading-relaxed">
+                            万一サイズや色味が合わなくても、<strong>配送業者がご自宅玄関まで直接回収</strong>に伺います。梱包のし直しも最低限でOK！
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Center-Right Column: Workspace Tabs (8 Cols) -->
+        <div class="lg:col-span-8 flex flex-col gap-4">
+            
+            <!-- Workspace Navigation Tabs -->
+            <div class="bg-white rounded-xl border border-brand-200 p-1 flex shadow-sm">
+                <button id="tab-btn-diag" onclick="switchMainTab('diag')" class="flex-1 py-2.5 text-xs sm:text-sm font-bold rounded-lg text-brand-900 bg-brand-100 border border-brand-200 transition-all flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-magnifying-glass-chart"></i>
+                    <span>EC商品URL・ジャンル診断</span>
+                </button>
+                <button id="tab-btn-coord" onclick="switchMainTab('coord')" class="flex-1 py-2.5 text-xs sm:text-sm font-bold rounded-lg text-slate-500 hover:text-brand-800 transition-all flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-shapes"></i>
+                    <span>おうちでコーデ・配置診断</span>
+                </button>
+            </div>
+
+            <!-- TAB CONTENT: SINGLE PRODUCT URL DIAGNOSIS -->
+            <div id="main-tab-diag" class="bg-white rounded-2xl border border-brand-200 shadow-sm p-4 md:p-6 flex flex-col gap-5">
+                
+                <!-- URL / Product Form -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-sm font-bold text-slate-700">診断したい商品のURL、または名前を入れてね</label>
+                        <span class="text-xs text-slate-400">服・家具・小物 全ECに対応</span>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <input type="text" id="target-product-url" placeholder="http://... または「北欧風3人掛けソファ」「本革ショルダーバッグ」など名前だけでもOK" class="flex-grow border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 bg-slate-50">
+                        <button onclick="diagnoseProduct()" class="bg-brand-600 hover:bg-brand-700 text-white font-bold px-5 py-3 rounded-xl transition-all shadow-md flex items-center gap-2 text-sm shrink-0">
+                            <span class="hidden sm:inline">ウメさんに診断してもらう</span>
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </button>
+                    </div>
+
+                    <!-- Preset Samples -->
+                    <div class="flex flex-wrap items-center gap-2 pt-1">
+                        <span class="text-xs text-slate-400">お試し用サンプル：</span>
+                        <button onclick="loadSampleProduct('coat')" class="bg-slate-100 hover:bg-brand-50 hover:text-brand-800 border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-600 transition-all">
+                            🧥 冬用ダッフルコート (L)
+                        </button>
+                        <button onclick="loadSampleProduct('sofa')" class="bg-slate-100 hover:bg-brand-50 hover:text-brand-800 border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-600 transition-all">
+                            🛋️ コンパクト3人掛けソファ
+                        </button>
+                        <button onclick="loadSampleProduct('backpack')" class="bg-slate-100 hover:bg-brand-50 hover:text-brand-800 border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-600 transition-all">
+                            🎒 多機能リュック (30L)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- DIAGNOSIS RESULTS AREA -->
+                <div id="diag-results" class="hidden flex flex-col gap-6 border-t border-slate-100 pt-5">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Left: Visual Size Matcher -->
+                        <div class="border border-brand-100 rounded-2xl p-4 bg-brand-50/50 flex flex-col gap-3">
+                            <h4 class="font-bold text-xs text-brand-900 flex items-center justify-between">
+                                <span id="visualizer-title">👗 あなたの体型 vs 商品のサイズ</span>
+                                <span class="text-[10px] bg-brand-200 text-brand-800 px-1.5 py-0.5 rounded" id="size-match-label">サイズ感: ぴったり</span>
+                            </h4>
+                            
+                            <!-- Visual Overlay SVG Canvas representing Size comparison -->
+                            <div class="relative w-full aspect-[4/3] bg-white border border-brand-100 rounded-xl p-2 flex items-center justify-center overflow-hidden">
+                                <canvas id="size-compare-canvas" class="w-full h-full object-contain"></canvas>
+                            </div>
+                            
+                            <!-- Mini Indicators (Dynamic) -->
+                            <div id="diff-indicators-container" class="grid grid-cols-3 gap-2 text-[10px] text-center">
+                                <!-- Filled by JS -->
+                            </div>
+                        </div>
+
+                        <!-- Right: Texture, Color light Simulation & Live Video review -->
+                        <div class="flex flex-col gap-4">
+                            
+                            <!-- Video Demo Area -->
+                            <div class="border border-slate-200 rounded-2xl p-4 bg-slate-50 space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <h4 class="font-bold text-xs text-slate-700 flex items-center gap-1.5">
+                                        <i class="fa-solid fa-clapperboard text-brand-500"></i>
+                                        <span>実物の質感・雰囲気チェック動画</span>
+                                    </h4>
+                                    <span class="text-[10px] text-amber-600 bg-amber-50 px-1.5 rounded border border-amber-200">実物チェック</span>
+                                </div>
+
+                                <!-- Mock Video Player with Canvas overlay -->
+                                <div class="relative aspect-video bg-black rounded-xl overflow-hidden flex items-center justify-center border border-slate-300 shadow-inner">
+                                    <div id="video-sim-overlay" class="absolute inset-0 bg-cover bg-center" style="background-image: url('https://placehold.co/640x360/312e81/ffffff?text=Product+Material+Video+Demo');"></div>
+                                    <div class="absolute inset-0 bg-black/30 flex flex-col items-center justify-center p-3 text-center">
+                                        <button onclick="playVideoSimulation()" class="bg-white/90 hover:bg-white text-slate-900 w-12 h-12 rounded-full flex items-center justify-center shadow-lg transform active:scale-95 transition-all">
+                                            <i class="fa-solid fa-play text-lg pl-1 text-brand-600"></i>
+                                        </button>
+                                        <p class="text-[11px] text-white mt-2 font-semibold" id="video-subtitle">実物の揺れや質感・光の反射を再現</p>
+                                    </div>
+                                </div>
+
+                                <!-- Quality & Texture Indicators -->
+                                <div class="space-y-2 text-xs">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-slate-500 text-[11px]" id="indicator-thickness-label">生地・木目の厚み:</span>
+                                        <div class="w-1/2 bg-slate-200 h-2 rounded-full overflow-hidden flex">
+                                            <div id="thickness-bar" class="bg-brand-500 h-full w-[70%]"></div>
+                                        </div>
+                                        <span class="font-bold text-[10px]" id="indicator-thickness-value">厚手</span>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-slate-500 text-[11px]" id="indicator-tickle-label">肌ざわり・硬さ:</span>
+                                        <div class="w-1/2 bg-slate-200 h-2 rounded-full overflow-hidden flex">
+                                            <div id="tickle-bar" class="bg-emerald-500 h-full w-[20%]"></div>
+                                        </div>
+                                        <span class="font-bold text-[10px]" id="indicator-tickle-value">ほぼ無し</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Lighting Simulator -->
+                            <div class="border border-slate-200 rounded-2xl p-4 bg-white flex flex-col gap-2.5 shadow-sm">
+                                <h4 class="font-bold text-xs text-slate-700 flex items-center justify-between">
+                                    <span>💡 「おうちの照明」色味・質感シミュレーター</span>
+                                    <span class="text-[9px] bg-slate-100 text-slate-500 px-1 py-0.5 rounded font-bold">色の見え方ギャップ防止</span>
+                                </h4>
+                                <p class="text-[10px] text-slate-500 leading-relaxed">
+                                    屋外光、家の中の白い蛍光灯、オレンジ色の白熱灯など、置く（着る）場所の環境に合わせて色味がどう見えるかを再現。
+                                </p>
+                                
+                                <div class="grid grid-cols-4 gap-1.5">
+                                    <button onclick="setLightMode('outdoor')" class="bg-amber-50 hover:bg-amber-100 text-[10px] py-1.5 rounded-lg border border-amber-200 font-medium">
+                                        ☀️ 屋外・日光
+                                    </button>
+                                    <button onclick="setLightMode('office')" class="bg-blue-50 hover:bg-blue-100 text-[10px] py-1.5 rounded-lg border border-blue-200 font-medium">
+                                        🏢 白い蛍光灯
+                                    </button>
+                                    <button onclick="setLightMode('living')" class="bg-orange-50 hover:bg-orange-100 text-[10px] py-1.5 rounded-lg border border-orange-200 font-medium">
+                                        🛋️ オレンジ電球
+                                    </button>
+                                    <button onclick="setLightMode('studio')" class="bg-slate-100 hover:bg-slate-200 text-[10px] py-1.5 rounded-lg border border-slate-300 font-medium">
+                                        📸 スタジオ光
+                                    </button>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- PREMIUM GEMINI AI FEATURE: FAILURE RISK FORECAST -->
+                    <div class="bg-gradient-to-r from-red-50 to-orange-50 border border-orange-200 rounded-2xl p-5 shadow-sm space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div>
+                                <h3 class="font-bold text-sm text-amber-900 flex items-center gap-1.5">
+                                    <span class="text-lg font-sans">✨</span>
+                                    <span>ウメさんの「お買い物失敗リスク予報」</span>
+                                </h3>
+                                <p class="text-[11px] text-amber-700">Gemini 2.5 Flash がデータと商品を照らし合わせ、オンライン特有のリスクを弾き出します</p>
+                            </div>
+                            <button onclick="generateFailureForecast()" class="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-umbrella-beach"></i>
+                                <span>✨ リスク予報を出す</span>
+                            </button>
+                        </div>
+
+                        <!-- Forecast Results Placeholder / Real content -->
+                        <div id="failure-forecast-result" class="hidden space-y-4 bg-white/70 rounded-xl p-4 border border-orange-100">
+                            <!-- Loading State -->
+                            <div id="forecast-loading" class="flex flex-col items-center justify-center py-4 space-y-2">
+                                <i class="fa-solid fa-cookie-bite text-amber-500 text-3xl animate-spin"></i>
+                                <p class="text-xs text-amber-800">ウメさんがお茶を淹れながら、そろばんを弾いて計算しとるよ...</p>
+                            </div>
+                            
+                            <!-- Real Output -->
+                            <div id="forecast-content" class="space-y-4 hidden text-xs">
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    <div class="bg-white p-3 rounded-lg border border-orange-100">
+                                        <span class="block text-slate-500 text-[10px]" id="risk-header-1">色味・イメージギャップ</span>
+                                        <div class="flex items-baseline gap-1 mt-1">
+                                            <span class="text-lg font-extrabold text-red-600" id="risk-1">30%</span>
+                                            <span class="text-[9px] text-slate-400">の確率</span>
+                                        </div>
+                                        <div class="w-full bg-slate-100 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                                            <div id="risk-1-bar" class="bg-red-500 h-full" style="width: 30%"></div>
+                                        </div>
+                                    </div>
+                                    <div class="bg-white p-3 rounded-lg border border-orange-100">
+                                        <span class="block text-slate-500 text-[10px]" id="risk-header-2">お洗濯・メンテ変形リスク</span>
+                                        <div class="flex items-baseline gap-1 mt-1">
+                                            <span class="text-lg font-extrabold text-amber-600" id="risk-2">20%</span>
+                                            <span class="text-[9px] text-slate-400">の確率</span>
+                                        </div>
+                                        <div class="w-full bg-slate-100 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                                            <div id="risk-2-bar" class="bg-amber-500 h-full" style="width: 20%"></div>
+                                        </div>
+                                    </div>
+                                    <div class="bg-white p-3 rounded-lg border border-orange-100">
+                                        <span class="block text-slate-500 text-[10px]" id="risk-header-3">地方配送・搬入ミスマッチ</span>
+                                        <div class="flex items-baseline gap-1 mt-1">
+                                            <span class="text-lg font-extrabold text-emerald-600" id="risk-3">5%</span>
+                                            <span class="text-[9px] text-slate-400">の確率</span>
+                                        </div>
+                                        <div class="w-full bg-slate-100 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                                            <div id="risk-3-bar" class="bg-emerald-500 h-full" style="width: 5%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-amber-50/80 p-3 rounded-lg border border-amber-200">
+                                    <h5 class="font-bold text-amber-900 mb-1 flex items-center gap-1 font-sans">
+                                        <span>👵🏻</span>
+                                        <span>ウメさんのお節介アドバイス：</span>
+                                    </h5>
+                                    <p class="text-slate-700 leading-relaxed font-sans" id="forecast-advice">
+                                        ここにウメさんの丁寧なリスク回避アドバイスが挿入されるで。
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Initial Empty Message -->
+                <div id="diag-empty-state" class="text-center py-10 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center gap-3">
+                    <i class="fa-solid fa-magnifying-glass-chart text-slate-300 text-5xl"></i>
+                    <h3 class="font-bold text-slate-600">URLか商品の名前を入れて診断ボタンを押してね！</h3>
+                    <p class="text-xs text-slate-400 max-w-sm leading-relaxed">
+                        アパレル服はもちろん、ソファ、本棚、リュック、靴など、ネット通販で「届いた時に違ったらどうしよう」と思うものは何でも入力可能です。
+                    </p>
+                </div>
+            </div>
+
+            <!-- TAB CONTENT: MULTIPLE PRODUCT COORDINATE / SPATIAL LAYOUT -->
+            <div id="main-tab-coord" class="bg-white rounded-2xl border border-brand-200 shadow-sm p-4 md:p-6 flex flex-col gap-5 hidden">
+                
+                <div class="space-y-2">
+                    <h2 class="font-bold text-slate-700 text-sm" id="coord-heading-title">合わせたいアイテム・家具を最大3つ登録（URLや手持ち）</h2>
+                    <p class="text-xs text-slate-500 leading-relaxed" id="coord-heading-desc">
+                        「このコートの中にこのストライプシャツを着たらどう？」「このソファの前にこのローテーブルを置いたら狭い？」など、コーディネートや空間バランスをAIがシミュレートします。
+                    </p>
+                </div>
+
+                <!-- Coordinate Items Grid Selector -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    
+                    <!-- Item Slot 1 -->
+                    <div id="slot-1" class="border border-dashed border-brand-300 bg-brand-50/50 rounded-xl p-3 flex flex-col items-center justify-center text-center relative h-36 overflow-hidden">
+                        <div id="slot-1-empty" class="space-y-1.5">
+                            <i class="fa-solid fa-shirt text-brand-400 text-2xl"></i>
+                            <span class="block text-[11px] font-bold text-brand-800">アイテム 1</span>
+                            <button onclick="openSelectSlotModal(1)" class="bg-white text-brand-700 text-[10px] font-semibold py-1 px-2.5 rounded border border-brand-300 hover:bg-brand-50">
+                                選択・追加
+                            </button>
+                        </div>
+                        <div id="slot-1-active" class="hidden w-full h-full flex flex-col items-center justify-between">
+                            <button onclick="clearSlot(1)" class="absolute top-1 right-1 bg-black/50 hover:bg-black text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                                &times;
+                            </button>
+                            <img id="slot-1-img" src="" alt="slot1" class="w-16 h-16 object-contain">
+                            <span id="slot-1-title" class="text-[10px] font-bold text-slate-700 truncate w-full"></span>
+                        </div>
+                    </div>
+
+                    <!-- Item Slot 2 -->
+                    <div id="slot-2" class="border border-dashed border-brand-300 bg-brand-50/50 rounded-xl p-3 flex flex-col items-center justify-center text-center relative h-36 overflow-hidden">
+                        <div id="slot-2-empty" class="space-y-1.5">
+                            <i class="fa-solid fa-couch text-brand-400 text-2xl"></i>
+                            <span class="block text-[11px] font-bold text-brand-800">アイテム 2</span>
+                            <button onclick="openSelectSlotModal(2)" class="bg-white text-brand-700 text-[10px] font-semibold py-1 px-2.5 rounded border border-brand-300 hover:bg-brand-50">
+                                選択・追加
+                            </button>
+                        </div>
+                        <div id="slot-2-active" class="hidden w-full h-full flex flex-col items-center justify-between">
+                            <button onclick="clearSlot(2)" class="absolute top-1 right-1 bg-black/50 hover:bg-black text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                                &times;
+                            </button>
+                            <img id="slot-2-img" src="" alt="slot2" class="w-16 h-16 object-contain">
+                            <span id="slot-2-title" class="text-[10px] font-bold text-slate-700 truncate w-full"></span>
+                        </div>
+                    </div>
+
+                    <!-- Item Slot 3 -->
+                    <div id="slot-3" class="border border-dashed border-brand-300 bg-brand-50/50 rounded-xl p-3 flex flex-col items-center justify-center text-center relative h-36 overflow-hidden">
+                        <div id="slot-3-empty" class="space-y-1.5">
+                            <i class="fa-solid fa-glasses text-brand-400 text-2xl"></i>
+                            <span class="block text-[11px] font-bold text-brand-800">アイテム 3</span>
+                            <button onclick="openSelectSlotModal(3)" class="bg-white text-brand-700 text-[10px] font-semibold py-1 px-2.5 rounded border border-brand-300 hover:bg-brand-50">
+                                選択・追加
+                            </button>
+                        </div>
+                        <div id="slot-3-active" class="hidden w-full h-full flex flex-col items-center justify-between">
+                            <button onclick="clearSlot(3)" class="absolute top-1 right-1 bg-black/50 hover:bg-black text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                                &times;
+                            </button>
+                            <img id="slot-3-img" src="" alt="slot3" class="w-16 h-16 object-contain">
+                            <span id="slot-3-title" class="text-[10px] font-bold text-slate-700 truncate w-full"></span>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Diagnosis Run Button -->
+                <div class="flex justify-center">
+                    <button onclick="diagnoseCoordinate()" class="bg-gradient-to-r from-brand-600 to-brand-750 hover:from-brand-700 hover:to-brand-800 text-white font-bold px-8 py-3 rounded-xl transition-all shadow-md flex items-center gap-2">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> 組み合わせ・配置の相性診断を実行！
+                    </button>
+                </div>
+
+                <!-- Coordination visual layout -->
+                <div id="coord-visual-box" class="hidden border border-brand-200 rounded-2xl p-4 bg-brand-50/20 text-center space-y-3">
+                    <h4 class="font-bold text-xs text-brand-900" id="visualizer-overlay-title">🏡 お部屋平置き・切り抜き配置イメージ</h4>
+                    <div class="h-64 bg-white border border-brand-100 rounded-xl relative flex items-center justify-center gap-4 p-4 shadow-sm">
+                        <!-- Auto transparent layout simulation -->
+                        <div id="canvas-coord-inner" class="flex items-center justify-center gap-6"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CHAT INTERFACE WITH AI SHOP ASSISTANT "UME-SAN" -->
+            <div class="bg-white rounded-2xl border border-brand-200 shadow-sm flex flex-col overflow-hidden h-[500px]">
+                
+                <!-- Chat Header -->
+                <div class="bg-gradient-to-r from-brand-800 to-brand-950 px-4 py-3 text-white flex items-center justify-between">
+                    <div class="flex items-center space-x-2.5">
+                        <div class="relative">
+                            <div class="w-10 h-10 bg-brand-100 rounded-full border-2 border-brand-300 flex items-center justify-center text-xl overflow-hidden shadow-md animate-bounce">
+                                <span class="text-brand-900 font-bold font-sans">👵🏻</span>
+                            </div>
+                            <span class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-sm">親心AI店員「ウメさん」</h3>
+                            <p class="text-[10px] text-brand-200">家具も小物も、おばちゃんに何でも聞いてな！</p>
+                        </div>
+                    </div>
+                    <!-- Status / Badge -->
+                    <div class="bg-brand-700/50 text-[10px] px-2.5 py-1 rounded-full border border-brand-500/30 flex items-center gap-1.5">
+                        <i class="fa-solid fa-microphone-lines text-green-300 animate-pulse"></i>
+                        <span>AI接続中: 2.5 Flash</span>
+                    </div>
+                </div>
+
+                <!-- Chat Messages Body -->
+                <div id="chat-messages" class="flex-grow p-4 overflow-y-auto space-y-4 bg-brand-50/10">
+                    
+                    <!-- Message from Ume-san (Initial) -->
+                    <div class="flex items-start gap-2.5">
+                        <div class="w-8 h-8 bg-brand-100 rounded-full flex items-center justify-center text-base shrink-0 border border-brand-200 shadow-sm">
+                            👵🏻
+                        </div>
+                        <div class="relative bg-white border border-brand-100 rounded-2xl p-3.5 max-w-[85%] text-xs shadow-sm bubble-left text-slate-800 leading-relaxed">
+                            <p class="font-bold text-brand-900 mb-1">ウメさん</p>
+                            いらっしゃい！何でも失敗から守るコンシェルジュの「ウメ」やで。
+                            アパレル服はもちろんやけど、最近は「届いてみたら意外とデカかった！」ってなりがちな<strong>ソファーや本棚などの大物家具</strong>、あとは使い心地が心配な<strong>リュックや靴などの小物</strong>の相談もバッチリ任せてな。
+                            <br><br>
+                            「このソファ、うちの幅200cmのスペースに入るかしら？」とか、「このリュックは重たくない？」とか、不安なことは何でも教えてな。
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Chat Input Controls -->
+                <div class="border-t border-slate-100 p-3 bg-slate-50 flex gap-2">
+                    <input type="text" id="chat-input" placeholder="ウメさん、このリュックは重たい？ / ソファを置いたら通路を塞ぐかな？" class="flex-grow border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-400 bg-white" onkeydown="handleChatKeyPress(event)">
+                    <button onclick="sendChatMessage()" class="bg-brand-600 hover:bg-brand-700 text-white rounded-xl px-4 py-2.5 flex items-center justify-center transition-all shadow shadow-brand-200">
+                        <i class="fa-solid fa-location-arrow"></i>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Modal for selecting items in the coordination slot -->
+    <div id="slot-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl border border-brand-200 max-w-lg w-full p-6 space-y-4 shadow-xl">
+            <div class="flex items-center justify-between border-b border-brand-100 pb-3">
+                <h3 class="font-bold text-brand-900 flex items-center gap-1.5">
+                    <i class="fa-solid fa-shapes"></i>
+                    <span>組み合わせアイテムを選択</span>
+                </h3>
+                <button onclick="closeSelectSlotModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+            </div>
+            
+            <p class="text-xs text-slate-500">
+                お好きなアパレル・家具・小物を登録して、全体の配置・相性をシミュレートしましょう。
+            </p>
+
+            <!-- Predefined Items list -->
+            <div class="space-y-3 max-h-60 overflow-y-auto pr-1">
+                <span class="text-xs font-bold text-slate-400">サンプルアイテム</span>
+                
+                <div class="grid grid-cols-1 gap-2">
+                    <!-- Option 1 -->
+                    <div onclick="selectProductForSlot('coat', '冬用ウールダッフルコート (L)', 'https://placehold.co/150x150/d09f6e/ffffff?text=Coat')" class="flex items-center gap-3 p-2.5 border border-slate-200 rounded-xl hover:bg-brand-50 cursor-pointer transition-all">
+                        <img src="https://placehold.co/150x150/d09f6e/ffffff?text=Coat" alt="coat" class="w-12 h-12 object-contain bg-white rounded border">
+                        <div class="text-xs">
+                            <span class="font-bold text-slate-700 block">冬用ウールダッフルコート</span>
+                            <span class="text-slate-400 text-[10px]">アウター / キャメル</span>
+                        </div>
+                    </div>
+                    <!-- Option 2 -->
+                    <div onclick="selectProductForSlot('sofa', 'コンパクト3人掛けソファ', 'https://placehold.co/150x150/10b981/ffffff?text=Sofa')" class="flex items-center gap-3 p-2.5 border border-slate-200 rounded-xl hover:bg-brand-50 cursor-pointer transition-all">
+                        <img src="https://placehold.co/150x150/10b981/ffffff?text=Sofa" alt="sofa" class="w-12 h-12 object-contain bg-white rounded border">
+                        <div class="text-xs">
+                            <span class="font-bold text-slate-700 block">コンパクト3人掛けソファ</span>
+                            <span class="text-slate-400 text-[10px]">家具 / モスグリーン</span>
+                        </div>
+                    </div>
+                    <!-- Option 3 -->
+                    <div onclick="selectProductForSlot('backpack', '多機能リュック (30L)', 'https://placehold.co/150x150/334155/ffffff?text=Backpack')" class="flex items-center gap-3 p-2.5 border border-slate-200 rounded-xl hover:bg-brand-50 cursor-pointer transition-all">
+                        <img src="https://placehold.co/150x150/334155/ffffff?text=Backpack" alt="backpack" class="w-12 h-12 object-contain bg-white rounded border">
+                        <div class="text-xs">
+                            <span class="font-bold text-slate-700 block">多機能デイパック 30L</span>
+                            <span class="text-slate-400 text-[10px]">小物 / チャコール</span>
+                        </div>
+                    </div>
+                    <!-- Option 4 -->
+                    <div onclick="selectProductForSlot('shirt', 'ストライプブロードシャツ', 'https://placehold.co/150x150/3b82f6/ffffff?text=Shirt')" class="flex items-center gap-3 p-2.5 border border-slate-200 rounded-xl hover:bg-brand-50 cursor-pointer transition-all">
+                        <img src="https://placehold.co/150x150/3b82f6/ffffff?text=Shirt" alt="shirt" class="w-12 h-12 object-contain bg-white rounded border">
+                        <div class="text-xs">
+                            <span class="font-bold text-slate-700 block">ストライプブロードシャツ</span>
+                            <span class="text-slate-400 text-[10px]">アウター / ブルー</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-2 border-t border-slate-100">
+                <button onclick="closeSelectSlotModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2 px-4 rounded-lg">
+                    キャンセル
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Javascript Core Logic -->
+    <script>
+        // State Management
+        let currentLeftTab = 'profile';
+        let currentLeftSubtab = 'apparel';
+        let currentMainTab = 'diag';
+        let activeModalSlot = null;
+        let activeLightMode = 'studio';
+
+        // Coordination slots storage
+        const coordSlots = {
+            1: null,
+            2: null,
+            3: null
+        };
+
+        // User profile configuration (Expanded to apparel, furniture, and goods)
+        let userProfile = {
+            name: "お買い物っ子",
+            region: "tottori",
+            // Apparel
+            height: 165,
+            weight: 58,
+            shoulder: 44,
+            chest: 48,
+            length: 66,
+            sleeve: 59,
+            // Furniture
+            roomWidth: 200,
+            roomDepth: 100,
+            roomHeight: 120,
+            // Goods
+            foot: 24.5,
+            backpackVol: 20
+        };
+
+        // Mock product database
+        const mockProducts = {
+            coat: {
+                id: 'coat',
+                type: 'apparel',
+                title: "冬用ウールダッフルコート (L)",
+                price: "¥14,800",
+                sizes: { shoulder: 46, chest: 51, length: 75, sleeve: 62 },
+                color: { outdoor: '#c2410c', office: '#b45309', living: '#7c2d12', studio: '#d09f6e' },
+                material: "ウール混、しっかりした肉厚生地、防寒性高め",
+                thickness: "厚手",
+                tickle: "ほぼ無し",
+                image: "https://placehold.co/150x150/d09f6e/ffffff?text=Coat"
+            },
+            shirt: {
+                id: 'shirt',
+                type: 'apparel',
+                title: "ストライプブロードシャツ (M)",
+                price: "¥4,900",
+                sizes: { shoulder: 43, chest: 47, length: 70, sleeve: 60 },
+                color: { outdoor: '#60a5fa', office: '#3b82f6', living: '#2563eb', studio: '#3b82f6' },
+                material: "コットン100% ブロード、少しパリッとした素材感",
+                thickness: "中厚",
+                tickle: "なし",
+                image: "https://placehold.co/150x150/3b82f6/ffffff?text=Shirt"
+            },
+            sofa: {
+                id: 'sofa',
+                type: 'furniture',
+                title: "コンパクト3人掛けソファ (G)",
+                price: "¥39,800",
+                sizes: { width: 180, depth: 85, height: 75 }, // Furniture dimensions
+                color: { outdoor: '#059669', office: '#10b981', living: '#065f46', studio: '#10b981' },
+                material: "天然木フレーム、ファブリック張りウレタンフォーム入り",
+                thickness: "肉厚クッション",
+                tickle: "なめらか",
+                image: "https://placehold.co/150x150/10b981/ffffff?text=Sofa"
+            },
+            backpack: {
+                id: 'backpack',
+                type: 'goods',
+                title: "多機能デイパック (30L)",
+                price: "¥8,500",
+                sizes: { width: 32, depth: 18, height: 50, weight: 1.1 }, // width, depth, height, weight
+                color: { outdoor: '#1e293b', office: '#334155', living: '#0f172a', studio: '#334155' },
+                material: "1680D高密度ナイロン撥水加工、背面メッシュ、自立型",
+                thickness: "極厚パッド",
+                tickle: "ざらっと頑丈",
+                image: "https://placehold.co/150x150/334155/ffffff?text=Backpack"
+            },
+            jacket: {
+                id: 'jacket',
+                type: 'apparel',
+                title: "おでかけデニムジャケット (M)",
+                price: "¥8,900",
+                sizes: { shoulder: 44, chest: 49, length: 65, sleeve: 59 },
+                color: { outdoor: '#334155', office: '#475569', living: '#1e293b', studio: '#475569' },
+                material: "丈夫なデニム、着れば着るほど体に馴染みます",
+                thickness: "やや厚手",
+                tickle: "なし",
+                image: "https://placehold.co/150x150/475569/ffffff?text=Jacket"
+            }
+        };
+
+        let loadedProduct = null;
+
+        const regionalAds = {
+            tottori: {
+                title: "鳥取県全域・大型配送＆送料無料特約！",
+                text: "ソファや家具など運送が大変な大型荷物でも安心！コンシェルジュ提携なら、<strong>米子・倉吉・鳥取市内どこでも送料無料・玄関中まで搬入してお届けします。</strong>"
+            },
+            shimane: {
+                title: "山陰地方・迅速大型配送＆安心サイズ返品無料",
+                text: "出雲市、松江市など山陰地方にお届けの場合、<strong>サイズが部屋に入らなければ14日間いつでも返品可能（集荷引き取り伺います）！</strong>"
+            },
+            hokkaido: {
+                title: "北海道エリア・冬物ダッフル＆家具送料無料特約！",
+                text: "冬の豪雪時期でも追加の特別配送費は一切不要！ソファなどの大物配送も、配送ドライバーが玄関の中まで丁寧に運び入れます。"
+            },
+            kyushu: {
+                title: "九州地方・お山の中の集落でも即日発送・送料無料！",
+                text: "近くに実店舗が無くてお困りの方へ。提携ストア経由なら大型家具や日用品も追加配送料なしで最短お届け。"
+            },
+            tohoku: {
+                title: "東北エリア・冬物アウター＆暖房器具 先行特別割引！",
+                text: "東北の寒い冬に大活躍する大判アウターや家具類、コンシェルジュ経由なら特別配送料がいつでも無料に！"
+            }
+        };
+
+        window.onload = function() {
+            updateProfileDataFromInputs();
+            updateRegionAds();
+            appendBotMessage("👵🏻", "ウメさん", "ようこそ！画面左側の『マイサイズ』にお気に入りの服、お部屋のスペース（家具用）、小物のサイズを入れておいてな。そうしたら、あらゆる商品のURLや名前から失敗リスクを診断してアドバイスしたげるよ！");
+        };
+
+        function updateProfileDataFromInputs() {
+            userProfile.name = document.getElementById('user-name').value;
+            userProfile.region = document.getElementById('user-region').value;
+            // Apparel
+            userProfile.height = parseFloat(document.getElementById('size-height').value) || 165;
+            userProfile.weight = parseFloat(document.getElementById('size-weight').value) || 58;
+            userProfile.shoulder = parseFloat(document.getElementById('size-shoulder').value) || 44;
+            userProfile.chest = parseFloat(document.getElementById('size-chest').value) || 48;
+            userProfile.length = parseFloat(document.getElementById('size-length').value) || 66;
+            userProfile.sleeve = parseFloat(document.getElementById('size-sleeve').value) || 59;
+            // Furniture
+            userProfile.roomWidth = parseFloat(document.getElementById('room-width').value) || 200;
+            userProfile.roomDepth = parseFloat(document.getElementById('room-depth').value) || 100;
+            userProfile.roomHeight = parseFloat(document.getElementById('room-height').value) || 120;
+            // Goods
+            userProfile.foot = parseFloat(document.getElementById('size-foot').value) || 24.5;
+            userProfile.backpackVol = parseFloat(document.getElementById('size-backpack').value) || 20;
+        }
+
+        function updateAndDraw() {
+            updateProfileDataFromInputs();
+            drawComparison();
+        }
+
+        function updateProfileName() {
+            const val = document.getElementById('user-name').value;
+            document.getElementById('user-name-display').innerText = val ? val : "マイデータ";
+        }
+
+        // Camera Simulator Logic
+        let localStream = null;
+        function startCameraSim() {
+            const videoEl = document.getElementById('camera-stream');
+            const placeholderEl = document.getElementById('camera-placeholder');
+            const btnCapture = document.getElementById('btn-capture');
+
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+                .then(stream => {
+                    localStream = stream;
+                    videoEl.srcObject = stream;
+                    videoEl.classList.remove('hidden');
+                    placeholderEl.classList.add('hidden');
+                    btnCapture.disabled = false;
+                })
+                .catch(err => {
+                    videoEl.classList.add('hidden');
+                    placeholderEl.innerHTML = `
+                        <div class="text-center p-3 animate-pulse text-emerald-400">
+                            <i class="fa-solid fa-camera-retro text-3xl mb-1"></i>
+                            <p class="text-xs">【自動認識撮影シム起動】</p>
+                            <p class="text-[9px] text-slate-300">置きたいスペースまたはお気に入りの服に向けてください</p>
+                        </div>
+                    `;
+                    placeholderEl.classList.remove('hidden');
+                    btnCapture.disabled = false;
+                });
+        }
+
+        function captureMeasurement() {
+            const scanLine = document.getElementById('scan-line');
+            scanLine.classList.remove('hidden');
+            scanLine.style.animation = 'none';
+            setTimeout(() => {
+                scanLine.style.animation = 'pulse-soft 1.5s infinite';
+                simulatePhotoMeasurement(Math.random() > 0.5 ? 'sofa' : 'jacket');
+            }, 500);
+        }
+
+        function simulatePhotoMeasurement(type) {
+            const scanLine = document.getElementById('scan-line');
+            scanLine.classList.add('hidden');
+            
+            let item = mockProducts[type];
+            let alertText = "";
+
+            if (item.type === 'furniture') {
+                // Sofa Space simulation
+                document.getElementById('room-width').value = 210;
+                document.getElementById('room-depth').value = 90;
+                document.getElementById('room-height').value = 80;
+                alertText = "リビングの設置可能スペース「幅: 210cm / 奥行: 90cm」を検出してマイサイズに適用しました！";
+                switchMySizeSubtab('furniture');
+            } else {
+                // Apparel jacket simulation
+                document.getElementById('size-shoulder').value = 45;
+                document.getElementById('size-chest').value = 49;
+                document.getElementById('size-length').value = 65;
+                alertText = "お持ちの「おでかけデニムジャケット」を検出し、肩幅: 45cm / 身幅: 49cm / 着丈: 65cm をマイサイズに設定しました！";
+                switchMySizeSubtab('apparel');
+            }
+
+            updateProfileDataFromInputs();
+            drawComparison();
+
+            const alertBox = document.getElementById('measurement-result-alert');
+            const alertBoxText = document.getElementById('measurement-result-text');
+            alertBox.classList.remove('hidden');
+            alertBoxText.innerText = alertText;
+
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+            }
+
+            appendBotMessage("👵🏻", "ウメさん", `パシャリと撮影ありがとう！検出された数値を【マイサイズ】に上書きしておいたからね。これで欲しいソファや服とピタッと重なるよ！`);
+        }
+
+        function updateRegionAds() {
+            const region = document.getElementById('user-region').value;
+            const ad = regionalAds[region] || regionalAds['tottori'];
+            const activeAdBox = document.getElementById('active-ad-box');
+            
+            activeAdBox.style.opacity = '0.3';
+            setTimeout(() => {
+                document.getElementById('ad-content').innerHTML = `
+                    <h4 class="font-bold text-xs text-emerald-900 leading-tight">${ad.title}</h4>
+                    <p class="text-[10px] text-emerald-700 leading-relaxed">${ad.text}</p>
+                    <a href="#" class="inline-block text-[10px] font-bold text-teal-700 hover:underline">おトクな地域提携モールを見る <i class="fa-solid fa-chevron-right text-[8px]"></i></a>
+                `;
+                activeAdBox.style.opacity = '1';
+            }, 150);
+        }
+
+        // TAB NAVIGATION (LEFT SIDE)
+        function switchLeftTab(tab) {
+            document.getElementById('left-tab-profile').classList.add('hidden');
+            document.getElementById('left-tab-measure').classList.add('hidden');
+            document.getElementById('nav-profile-btn').className = "flex-1 py-2 text-xs md:text-sm font-semibold rounded-lg text-slate-500 hover:text-brand-700 transition-all";
+            document.getElementById('nav-measure-btn').className = "flex-1 py-2 text-xs md:text-sm font-semibold rounded-lg text-slate-500 hover:text-brand-700 transition-all";
+
+            if (tab === 'profile') {
+                document.getElementById('left-tab-profile').classList.remove('hidden');
+                document.getElementById('nav-profile-btn').className = "flex-1 py-2 text-xs md:text-sm font-semibold rounded-lg text-brand-800 bg-brand-100 border border-brand-200 transition-all";
+            } else {
+                document.getElementById('left-tab-measure').classList.remove('hidden');
+                document.getElementById('nav-measure-btn').className = "flex-1 py-2 text-xs md:text-sm font-semibold rounded-lg text-brand-800 bg-brand-100 border border-brand-200 transition-all";
+            }
+            currentLeftTab = tab;
+        }
+
+        // SUB-TABS FOR MY SIZE IN SIDEBAR
+        function switchMySizeSubtab(subtab) {
+            document.getElementById('subtab-content-apparel').classList.add('hidden');
+            document.getElementById('subtab-content-furniture').classList.add('hidden');
+            document.getElementById('subtab-content-goods').classList.add('hidden');
+
+            document.getElementById('subtab-apparel').className = "flex-1 py-1.5 border-b-2 border-transparent text-slate-400 hover:text-slate-600";
+            document.getElementById('subtab-furniture').className = "flex-1 py-1.5 border-b-2 border-transparent text-slate-400 hover:text-slate-600";
+            document.getElementById('subtab-goods').className = "flex-1 py-1.5 border-b-2 border-transparent text-slate-400 hover:text-slate-600";
+
+            if (subtab === 'apparel') {
+                document.getElementById('subtab-content-apparel').classList.remove('hidden');
+                document.getElementById('subtab-apparel').className = "flex-1 py-1.5 border-b-2 border-brand-500 text-brand-900 font-bold";
+            } else if (subtab === 'furniture') {
+                document.getElementById('subtab-content-furniture').classList.remove('hidden');
+                document.getElementById('subtab-furniture').className = "flex-1 py-1.5 border-b-2 border-brand-500 text-brand-900 font-bold";
+            } else {
+                document.getElementById('subtab-content-goods').classList.remove('hidden');
+                document.getElementById('subtab-goods').className = "flex-1 py-1.5 border-b-2 border-brand-500 text-brand-900 font-bold";
+            }
+            currentLeftSubtab = subtab;
+        }
+
+        function switchMainTab(tab) {
+            document.getElementById('main-tab-diag').classList.add('hidden');
+            document.getElementById('main-tab-coord').classList.add('hidden');
+            document.getElementById('tab-btn-diag').className = "flex-1 py-2.5 text-xs sm:text-sm font-bold rounded-lg text-slate-500 hover:text-brand-800 transition-all flex items-center justify-center gap-1.5";
+            document.getElementById('tab-btn-coord').className = "flex-1 py-2.5 text-xs sm:text-sm font-bold rounded-lg text-slate-500 hover:text-brand-800 transition-all flex items-center justify-center gap-1.5";
+
+            if (tab === 'diag') {
+                document.getElementById('main-tab-diag').classList.remove('hidden');
+                document.getElementById('tab-btn-diag').className = "flex-1 py-2.5 text-xs sm:text-sm font-bold rounded-lg text-brand-900 bg-brand-100 border border-brand-200 transition-all flex items-center justify-center gap-1.5";
+            } else {
+                document.getElementById('main-tab-coord').classList.remove('hidden');
+                document.getElementById('tab-btn-coord').className = "flex-1 py-2.5 text-xs sm:text-sm font-bold rounded-lg text-brand-900 bg-brand-100 border border-brand-200 transition-all flex items-center justify-center gap-1.5";
+            }
+            currentMainTab = tab;
+        }
+
+        // LOAD SAMPLE INTO DIAGNOSIS FORM
+        function loadSampleProduct(key) {
+            const prod = mockProducts[key];
+            if (!prod) return;
+            document.getElementById('target-product-url').value = `https://shopping.example.co.jp/items/${key}_premium_item`;
+            loadedProduct = prod;
+            diagnoseProduct();
+        }
+
+        function diagnoseProduct() {
+            const urlVal = document.getElementById('target-product-url').value.trim();
+            if (!urlVal) {
+                alert("URL、または欲しい商品の名前を入力してね！");
+                return;
+            }
+
+            if (!loadedProduct) {
+                loadedProduct = mockProducts.coat; 
+            }
+
+            // UI adjustments based on selected item type
+            if (loadedProduct.type === 'furniture') {
+                document.getElementById('visualizer-title').innerText = "🛋️ お部屋の設置予定スペース vs 商品サイズ";
+                document.getElementById('video-subtitle').innerText = "ソファの座り心地やヘタリ、木材の質感を10秒再現";
+                document.getElementById('indicator-thickness-label').innerText = "クッション肉厚・枠フレームの厚さ:";
+                document.getElementById('indicator-tickle-label').innerText = "座り心地（やわらか〜かため）:";
+                switchMySizeSubtab('furniture');
+            } else if (loadedProduct.type === 'goods') {
+                document.getElementById('visualizer-title').innerText = "🎒 小物サイズ vs 自宅の収納・想定サイズ";
+                document.getElementById('video-subtitle').innerText = "荷物を入れた時の形崩れ・肩への負荷を10秒再現";
+                document.getElementById('indicator-thickness-label').innerText = "生地の強さ・衝撃クッション性:";
+                document.getElementById('indicator-tickle-label').innerText = "表面の質感（ざらざら〜なめらか）:";
+                switchMySizeSubtab('goods');
+            } else {
+                document.getElementById('visualizer-title').innerText = "👗 あなたの体型 vs 商品のサイズ";
+                document.getElementById('video-subtitle').innerText = "163cmスタッフが着た時の揺れ・透け感を再現";
+                document.getElementById('indicator-thickness-label').innerText = "生地の厚み:";
+                document.getElementById('indicator-tickle-label').innerText = "肌ざわり・チクチク度:";
+                switchMySizeSubtab('apparel');
+            }
+
+            document.getElementById('diag-empty-state').classList.add('hidden');
+            document.getElementById('diag-results').classList.remove('hidden');
+
+            // Hide previous forecast
+            document.getElementById('failure-forecast-result').classList.add('hidden');
+
+            updateProfileDataFromInputs();
+            drawComparison();
+            playVideoSimulation(); 
+
+            askUmeAboutProduct(loadedProduct);
+        }
+
+        // GRAPHICS DRAWING: COMPARE USER SILHOUETTE/SPACE VS PRODUCT OVERLAY
+        function drawComparison() {
+            const canvas = document.getElementById('size-compare-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = 400;
+            canvas.height = 300;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw grid background
+            ctx.strokeStyle = '#f1e6d8';
+            ctx.lineWidth = 1;
+            for(let i=0; i<canvas.width; i+=20) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+            }
+            for(let j=0; j<canvas.height; j+=20) {
+                ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(canvas.width, j); ctx.stroke();
+            }
+
+            const prod = loadedProduct || mockProducts.coat;
+            const indicatorsContainer = document.getElementById('diff-indicators-container');
+
+            if (prod.type === 'furniture') {
+                // FURNITURE VISUALIZER: Draw Sofa comparison
+                const spaceW = userProfile.roomWidth;
+                const spaceD = userProfile.roomDepth;
+                
+                const sofaW = prod.sizes.width;
+                const sofaD = prod.sizes.depth;
+
+                const scale = 1.3; // Scaling factor for drawing sofa space
+
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+
+                // Draw Space (Dotted lines)
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#c2834f';
+                ctx.setLineDash([4, 4]);
+                ctx.fillStyle = 'rgba(194, 131, 79, 0.1)';
+                ctx.beginPath();
+                ctx.rect(centerX - (spaceW * scale) / 2, centerY - (spaceD * scale) / 2, spaceW * scale, spaceD * scale);
+                ctx.fill();
+                ctx.stroke();
+
+                // Draw Product Sofa (Solid lines)
+                ctx.strokeStyle = getProductColorByLight();
+                ctx.lineWidth = 3;
+                ctx.setLineDash([]);
+                ctx.fillStyle = hexToRGBA(getProductColorByLight(), 0.4);
+                ctx.beginPath();
+                ctx.rect(centerX - (sofaW * scale) / 2, centerY - (sofaD * scale) / 2, sofaW * scale, sofaD * scale);
+                ctx.fill();
+                ctx.stroke();
+
+                // Add Sofa details (armrests and backrest) inside canvas for visual ease
+                ctx.strokeStyle = getProductColorByLight();
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                // Backrest
+                ctx.rect(centerX - (sofaW * scale) / 2, centerY - (sofaD * scale) / 2, sofaW * scale, 15 * scale);
+                // Left arm
+                ctx.rect(centerX - (sofaW * scale) / 2, centerY - (sofaD * scale) / 2, 12 * scale, sofaD * scale);
+                // Right arm
+                ctx.rect(centerX + (sofaW * scale) / 2 - 12 * scale, centerY - (sofaD * scale) / 2, 12 * scale, sofaD * scale);
+                ctx.stroke();
+
+                // Update size match label & sub-indicators
+                const wDiff = spaceW - sofaW;
+                const dDiff = spaceD - sofaD;
+                let rating = wDiff >= 0 && dDiff >= 0 ? "余裕でおさまります！" : "はみ出しています(要注意)";
+                document.getElementById('size-match-label').innerText = "おさまり具合: " + rating;
+
+                indicatorsContainer.innerHTML = `
+                    <div class="bg-white border border-brand-100 p-1.5 rounded-lg">
+                        <span class="block text-slate-400">幅の余裕</span>
+                        <span class="font-bold text-slate-700">${wDiff >= 0 ? "+" : ""}${wDiff.toFixed(1)} cm</span>
+                    </div>
+                    <div class="bg-white border border-brand-100 p-1.5 rounded-lg">
+                        <span class="block text-slate-400">奥行の余裕</span>
+                        <span class="font-bold text-slate-700">${dDiff >= 0 ? "+" : ""}${dDiff.toFixed(1)} cm</span>
+                    </div>
+                    <div class="bg-white border border-brand-100 p-1.5 rounded-lg">
+                        <span class="block text-slate-400">搬入クリア判定</span>
+                        <span class="font-bold text-emerald-600">およそ良好</span>
+                    </div>
+                `;
+
+                ctx.font = "bold 10px sans-serif";
+                ctx.fillStyle = "#79432e";
+                ctx.fillText("■ あなたの許容空きスペース", 15, 260);
+                ctx.fillStyle = getProductColorByLight();
+                ctx.fillText("■ 家具商品のサイズ(俯瞰図)", 15, 280);
+
+            } else if (prod.type === 'goods') {
+                // GOODS VISUALIZER: Draw Backpack comparison against body torso
+                const backH = prod.sizes.height;
+                const backW = prod.sizes.width;
+
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+
+                // Draw User Back (Torso) representation (Dotted line box)
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#c2834f';
+                ctx.setLineDash([4, 4]);
+                ctx.fillStyle = 'rgba(194, 131, 79, 0.1)';
+                ctx.beginPath();
+                // Assumed human back silhouette dimensions
+                ctx.rect(centerX - 35, centerY - 60, 70, 120);
+                ctx.fill();
+                ctx.stroke();
+
+                // Draw Backpack (Solid line box)
+                ctx.strokeStyle = getProductColorByLight();
+                ctx.lineWidth = 3;
+                ctx.setLineDash([]);
+                ctx.fillStyle = hexToRGBA(getProductColorByLight(), 0.4);
+                ctx.beginPath();
+                ctx.rect(centerX - (backW * 1.5) / 2, centerY - (backH * 1.5) / 2, backW * 1.5, backH * 1.5);
+                ctx.fill();
+                ctx.stroke();
+
+                // Update labels
+                document.getElementById('size-match-label').innerText = "持ちやすさ: ちょうどよい";
+                indicatorsContainer.innerHTML = `
+                    <div class="bg-white border border-brand-100 p-1.5 rounded-lg">
+                        <span class="block text-slate-400">高さ</span>
+                        <span class="font-bold text-slate-700">${backH} cm</span>
+                    </div>
+                    <div class="bg-white border border-brand-100 p-1.5 rounded-lg">
+                        <span class="block text-slate-400">幅</span>
+                        <span class="font-bold text-slate-700">${backW} cm</span>
+                    </div>
+                    <div class="bg-white border border-brand-100 p-1.5 rounded-lg">
+                        <span class="block text-slate-400">容量</span>
+                        <span class="font-bold text-slate-700">30L (中容量)</span>
+                    </div>
+                `;
+
+                ctx.font = "bold 10px sans-serif";
+                ctx.fillStyle = "#79432e";
+                ctx.fillText("■ あなたの背中の想定サイズ", 15, 260);
+                ctx.fillStyle = getProductColorByLight();
+                ctx.fillText("■ バッグの大きさ", 15, 280);
+
+            } else {
+                // APPAREL VISUALIZER: Original Shirt overlays
+                const pSh = userProfile.shoulder; 
+                const pCh = userProfile.chest * 2; 
+                const pLe = userProfile.length;   
+
+                const itemSizes = prod.sizes;
+                const iSh = itemSizes.shoulder || 45;
+                const iCh = (itemSizes.chest || 49) * 2;
+                const iLe = itemSizes.length || 70;
+
+                const sDiff = iSh - pSh;
+                const cDiff = (iCh - pCh) / 2;
+                const lDiff = iLe - pLe;
+
+                let diffRating = "ジャストサイズや！";
+                if (sDiff > 3 || cDiff > 4) diffRating = "ゆったりめ";
+                else if (sDiff < -2 || cDiff < -2) diffRating = "かなりきつめ";
+                document.getElementById('size-match-label').innerText = "サイズ感: " + diffRating;
+
+                indicatorsContainer.innerHTML = `
+                    <div class="bg-white border border-brand-100 p-1.5 rounded-lg">
+                        <span class="block text-slate-400">肩幅差</span>
+                        <span class="font-bold text-slate-700">${sDiff >= 0 ? "+" : ""}${sDiff.toFixed(1)} cm</span>
+                    </div>
+                    <div class="bg-white border border-brand-100 p-1.5 rounded-lg">
+                        <span class="block text-slate-400">身幅差</span>
+                        <span class="font-bold text-slate-700">${cDiff >= 0 ? "+" : ""}${cDiff.toFixed(1)} cm</span>
+                    </div>
+                    <div class="bg-white border border-brand-100 p-1.5 rounded-lg">
+                        <span class="block text-slate-400">着丈差</span>
+                        <span class="font-bold text-slate-700">${lDiff >= 0 ? "+" : ""}${lDiff.toFixed(1)} cm</span>
+                    </div>
+                `;
+
+                function drawShirtPath(shoulder, chestWidth, length, color, isUser) {
+                    const centerX = canvas.width / 2;
+                    const centerY = 30; 
+
+                    const shHalf = shoulder * 2.5; 
+                    const chHalf = chestWidth * 2.5;
+                    const len = length * 2.8;
+
+                    ctx.beginPath();
+                    ctx.moveTo(centerX - 25, centerY);
+                    ctx.quadraticCurveTo(centerX, centerY + 10, centerX + 25, centerY);
+
+                    ctx.lineTo(centerX + shHalf, centerY + 5);
+                    ctx.lineTo(centerX + shHalf + 35, centerY + 40);
+                    ctx.lineTo(centerX + shHalf + 20, centerY + 55);
+                    ctx.lineTo(centerX + chHalf, centerY + 55);
+                    ctx.lineTo(centerX + chHalf, centerY + len);
+                    ctx.lineTo(centerX - chHalf, centerY + len);
+                    ctx.lineTo(centerX - chHalf, centerY + 55);
+                    ctx.lineTo(centerX - shHalf - 20, centerY + 55);
+                    ctx.lineTo(centerX - shHalf - 35, centerY + 40);
+                    ctx.lineTo(centerX - shHalf, centerY + 5);
+                    
+                    ctx.closePath();
+
+                    if (isUser) {
+                        ctx.fillStyle = 'rgba(194, 131, 79, 0.25)'; 
+                        ctx.fill();
+                        ctx.strokeStyle = '#c2834f';
+                        ctx.lineWidth = 2;
+                        ctx.setLineDash([4, 4]); 
+                    } else {
+                        ctx.fillStyle = hexToRGBA(getProductColorByLight(), 0.5);
+                        ctx.fill();
+                        ctx.strokeStyle = getProductColorByLight();
+                        ctx.lineWidth = 3;
+                        ctx.setLineDash([]); 
+                    }
+                    ctx.stroke();
+                }
+
+                drawShirtPath(iSh, iCh/2, iLe, '#d09f6e', false);
+                drawShirtPath(pSh, pCh/2, pLe, '#c2834f', true);
+
+                ctx.setLineDash([]);
+                ctx.font = "bold 10px sans-serif";
+                ctx.fillStyle = "#79432e";
+                ctx.fillText("■ あなたのサイズ(理想)", 15, 260);
+                ctx.fillStyle = getProductColorByLight();
+                ctx.fillText("■ 検討中の商品サイズ", 15, 280);
+            }
+        }
+
+        function hexToRGBA(hex, alpha) {
+            hex = hex.replace('#', '');
+            let r = parseInt(hex.substring(0, 2), 16);
+            let g = parseInt(hex.substring(2, 4), 16);
+            let b = parseInt(hex.substring(4, 6), 16);
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+
+        function getProductColorByLight() {
+            if (!loadedProduct) return '#d09f6e';
+            return loadedProduct.color[activeLightMode] || '#d09f6e';
+        }
+
+        function setLightMode(mode) {
+            activeLightMode = mode;
+            drawComparison();
+        }
+
+        function playVideoSimulation() {
+            const overlay = document.getElementById('video-sim-overlay');
+            if (!overlay) return;
+            overlay.innerHTML = `
+                <div class="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white">
+                    <i class="fa-solid fa-spinner text-4xl animate-spin text-brand-300 mb-2"></i>
+                    <p class="text-xs">スタッフが実物の動画とレビューを撮影中...</p>
+                </div>
+            `;
+            setTimeout(() => {
+                let comments = "「かなりもっちりした上質な触り心地で、チクチク感は全くないです！」";
+                if (loadedProduct && loadedProduct.type === 'furniture') {
+                    comments = "「座面が固めで長時間座っても腰が痛くなりにくい頑丈さですね。木枠の滑らかな手触りが抜群！」";
+                } else if (loadedProduct && loadedProduct.type === 'goods') {
+                    comments = "「13インチのPCもすっぽり入って、撥水も強いからタフに使えます！」";
+                }
+                overlay.innerHTML = `
+                    <div class="absolute inset-0 bg-emerald-950/20 flex flex-col items-end justify-between p-2">
+                        <span class="bg-red-600 text-white text-[9px] px-1.5 py-0.5 rounded font-bold animate-pulse">● PLAYING</span>
+                        <div class="bg-black/70 p-1.5 rounded text-white text-[10px] w-full text-center">
+                            <strong>実物動画レビュー：</strong> ${comments}
+                        </div>
+                    </div>
+                `;
+            }, 1000);
+        }
+
+        // CORE GEMINI API CALL WITH EXPONENTIAL BACKOFF
+        async function callGeminiAPI(systemPrompt, prompt) {
+            const apiKey = ""; // Kept empty as per sandbox requirements
+            const apiUrl = `https://generGenerativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`.replace('generGenerative', 'generative');
+
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] }
+            };
+
+            const delays = [1000, 2000, 4000, 8000, 16000];
+            const maxRetries = 5;
+
+            for (let i = 0; i <= maxRetries; i++) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        return result.candidates?.[0]?.content?.parts?.[0]?.text || "エラーが発生したで。";
+                    } else if (response.status === 429 || response.status >= 500) {
+                        if (i === maxRetries) throw new Error("API call failed after max retries");
+                        await new Promise(resolve => setTimeout(resolve, delays[i]));
+                    } else {
+                        throw new Error(`HTTP Error: ${response.status}`);
+                    }
+                } catch (e) {
+                    if (i === maxRetries) throw e;
+                    await new Promise(resolve => setTimeout(resolve, delays[i]));
+                }
+            }
+        }
+
+        // GEMINI 2.5 FLASH API CHAT INTEGRATION
+        async function askUmeAboutProduct(product) {
+            appendBotMessage("👵🏻", "ウメさん", "ちょっと待ってや、今あんたの登録データと商品データをじっくり見比べてみるからね...");
+
+            const systemPrompt = `
+You are 'Ume-san', an extremely warm, empathetic, and slightly humorous older lady from rural Japan who runs a traditional boutique. 
+Your goal is to help customers prevent online shopping failures across apparel, furniture, and personal items. 
+You speak in a friendly Kansai/Chugoku dialect ('~やで', '~やね', '〜しんさい'). 
+Treat the user like your own grandchild or beloved neighbor who has no shops nearby.
+`;
+
+            let detailsPrompt = "";
+            if (product.type === 'furniture') {
+                detailsPrompt = `
+【検討中の商品：家具】
+商品名: ${product.title}
+ソファ幅: ${product.sizes.width}cm, 奥行: ${product.sizes.depth}cm, 高さ: ${product.sizes.height}cm
+素材: ${product.material}
+ユーザーのおうちの許容スペース: 幅 ${userProfile.roomWidth}cm, 奥行 ${userProfile.roomDepth}cm
+
+【診断課題】
+1. このソファがおうちのスペースに収まるか（搬入経路や置き場の余裕について）を具体的に優しくアドバイス。
+2. 玄関や通路を曲がれるかなどの、大物家具ならではの心配りを含めて優しく回答してください。
+`;
+            } else if (product.type === 'goods') {
+                detailsPrompt = `
+【検討中の商品：小物・バッグ】
+商品名: ${product.title}
+バッグサイズ: 幅 ${product.sizes.width}cm, 高さ ${product.sizes.height}cm, 容量 ${userProfile.backpackVol}L
+素材: ${product.material}
+
+【診断課題】
+1. リュックや小物の使い心地（重さ、素材のタフさ、容量）について、ユーザーの想定と比較して使いやすいかアドバイス。
+2. 田舎でお出かけする時に実用的か温かく語ってください。
+`;
+            } else {
+                detailsPrompt = `
+【検討中の商品：服】
+商品名: ${product.title}
+商品サイズ: 肩幅 ${product.sizes.shoulder}cm, 身幅 ${product.sizes.chest}cm, 着丈 ${product.sizes.length}cm
+ユーザーの理想サイズ: 肩幅 ${userProfile.shoulder}cm, 身幅 ${userProfile.chest}cm
+
+【診断課題】
+1. この服がユーザーの体型にぴったりか、中に服を着込む余裕があるかなどをアドバイスしてください。
+`;
+            }
+
+            const promptText = `
+【ユーザープロフィール】
+お名前: ${userProfile.name}
+お住まい: ${userProfile.region}
+
+${detailsPrompt}
+
+温かくユーモアのある田舎のおばちゃん店員として、日本語150文字〜250文字程度で、優しく失敗を回避するメッセージを送ってください。
+`;
+
+            try {
+                const responseText = await callGeminiAPI(systemPrompt, promptText);
+                removeLastLoadingMessage();
+                appendBotMessage("👵🏻", "ウメさん", responseText);
+            } catch (e) {
+                console.error("API Call error:", e);
+                removeLastLoadingMessage();
+                let fallback = "";
+                if (product.type === 'furniture') {
+                    fallback = `${userProfile.name}ちゃん、このソファは幅が${product.sizes.width}cmあるね。おうちのスペース（幅${userProfile.roomWidth}cm）にぴったり収まるよ！でも玄関のドアを通す時、ちょっとギリギリになるかもしれんから、届く前に廊下の荷物を片付けておくと安心やで。楽しみに待ちんさいね。`;
+                } else if (product.type === 'goods') {
+                    fallback = `${userProfile.name}ちゃん、このデイパックは30Lだから結構しっかり荷物が入るよ。でも中に本や着替えをパンパンに詰めたら、ちょっと重たくなるからね。肩ベルトのクッションが肉厚だから、遠くのお出かけでもおばちゃんこれお勧めやで！`;
+                } else {
+                    fallback = `${userProfile.name}ちゃん、この服は肩幅${product.sizes.shoulder}cmあるからゆったり着られるよ！中にシャツやセーターを着てもモコモコしすぎなくて安心やね。`;
+                }
+                appendBotMessage("👵🏻", "ウメさん", fallback);
+            }
+        }
+
+        // PREMIUM GEMINI INTEGRATION: FAILURE RISK FORECAST (Multi-Category compatible)
+        async function generateFailureForecast() {
+            if (!loadedProduct) {
+                alert("まずは診断したい商品を選んでな！");
+                return;
+            }
+
+            const resultContainer = document.getElementById('failure-forecast-result');
+            const loadingIndicator = document.getElementById('forecast-loading');
+            const contentArea = document.getElementById('forecast-content');
+
+            resultContainer.classList.remove('hidden');
+            loadingIndicator.classList.remove('hidden');
+            contentArea.classList.add('hidden');
+
+            const systemPrompt = `
+You are 'Ume-san', the warm rural grandmother from Japan. Write raw JSON to analyze risk rates for apparel, furniture, or goods.
+Output ONLY a raw JSON object with:
+- risk_1_label (string, e.g. "お部屋のサイズミスマッチ" or "色味のギャップ")
+- risk_1_val (integer, 0 to 100)
+- risk_2_label (string, e.g. "搬入ルートの失敗" or "お洗濯縮み")
+- risk_2_val (integer, 0 to 100)
+- risk_3_label (string, e.g. "配送の不便さ" or "肩への重量負荷")
+- risk_3_val (integer, 0 to 100)
+- advice (string in Kansai dialect, cozy advice about 100-150 characters)
+Do not use markdown.
+`;
+
+            const promptText = `
+【検討中の商品の種類】: ${loadedProduct.type} (商品名: ${loadedProduct.title})
+【素材・サイズ】: ${loadedProduct.material}
+【ユーザーおうちデータ】: 居住地 ${userProfile.region}, 空きスペース幅 ${userProfile.roomWidth}cm, 体型 ${userProfile.height}cm
+
+Please formulate suitable risk values and cozy Japanese advice.
+`;
+
+            try {
+                const responseText = await callGeminiAPI(systemPrompt, promptText);
+                const cleanJsonText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+                const forecastData = JSON.parse(cleanJsonText);
+
+                document.getElementById('risk-header-1').innerText = forecastData.risk_1_label;
+                document.getElementById('risk-1').innerText = `${forecastData.risk_1_val}%`;
+                document.getElementById('risk-1-bar').style.width = `${forecastData.risk_1_val}%`;
+
+                document.getElementById('risk-header-2').innerText = forecastData.risk_2_label;
+                document.getElementById('risk-2').innerText = `${forecastData.risk_2_val}%`;
+                document.getElementById('risk-2-bar').style.width = `${forecastData.risk_2_val}%`;
+
+                document.getElementById('risk-header-3').innerText = forecastData.risk_3_label;
+                document.getElementById('risk-3').innerText = `${forecastData.risk_3_val}%`;
+                document.getElementById('risk-3-bar').style.width = `${forecastData.risk_3_val}%`;
+
+                document.getElementById('forecast-advice').innerText = forecastData.advice;
+
+                loadingIndicator.classList.add('hidden');
+                contentArea.classList.remove('hidden');
+
+            } catch (e) {
+                console.error("JSON or API forecast error, falling back:", e);
+                // Suitable fallback for Sofa
+                if (loadedProduct.type === 'furniture') {
+                    document.getElementById('risk-header-1').innerText = "お部屋の圧迫感ミスマッチ";
+                    document.getElementById('risk-1').innerText = "35%";
+                    document.getElementById('risk-1-bar').style.width = "35%";
+
+                    document.getElementById('risk-header-2').innerText = "玄関・廊下の搬入リスク";
+                    document.getElementById('risk-2').innerText = "20%";
+                    document.getElementById('risk-2-bar').style.width = "20%";
+
+                    document.getElementById('risk-header-3').innerText = "色・木目イメージギャップ";
+                    document.getElementById('risk-3').innerText = "15%";
+                    document.getElementById('risk-3-bar').style.width = "15%";
+
+                    document.getElementById('forecast-advice').innerText = "ソファは届くと想像以上に大きく感じやすいから、床に新聞紙でも広げて同じサイズ感を確認してみんさい。搬入時に手伝う人がいるかも要チェックやで！";
+                } else {
+                    document.getElementById('risk-header-1').innerText = "サイズ感ミスマッチ";
+                    document.getElementById('risk-1').innerText = "20%";
+                    document.getElementById('risk-1-bar').style.width = "20%";
+
+                    document.getElementById('risk-header-2').innerText = "実物の重量・重さ";
+                    document.getElementById('risk-2').innerText = "15%";
+                    document.getElementById('risk-2-bar').style.width = "15%";
+
+                    document.getElementById('risk-header-3').innerText = "色・イメージギャップ";
+                    document.getElementById('risk-3').innerText = "10%";
+                    document.getElementById('risk-3-bar').style.width = "10%";
+
+                    document.getElementById('forecast-advice').innerText = "ネットで小物やバッグを買う時は、特に中身を入れた時の『持ち重り』に注意やね。頑丈だけど少し革の重みを感じるかもしれないから気をつけてな。";
+                }
+
+                loadingIndicator.classList.add('hidden');
+                contentArea.classList.remove('hidden');
+            }
+        }
+
+        // CHAT INTERACTION UTILS
+        function appendBotMessage(avatar, name, text) {
+            const chatMessages = document.getElementById('chat-messages');
+            const msgHtml = `
+                <div class="flex items-start gap-2.5 message-item">
+                    <div class="w-8 h-8 bg-brand-100 rounded-full flex items-center justify-center text-base shrink-0 border border-brand-200 shadow-sm">
+                        ${avatar}
+                    </div>
+                    <div class="relative bg-white border border-brand-100 rounded-2xl p-3.5 max-w-[85%] text-xs shadow-sm bubble-left text-slate-800 leading-relaxed font-sans">
+                        <p class="font-bold text-brand-900 mb-1">${name}</p>
+                        ${text.replace(/\n/g, '<br>')}
+                    </div>
+                </div>
+            `;
+            chatMessages.insertAdjacentHTML('beforeend', msgHtml);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function removeLastLoadingMessage() {
+            const chatMessages = document.getElementById('chat-messages');
+            const items = chatMessages.getElementsByClassName('message-item');
+            if (items.length > 0) {
+                const lastItem = items[items.length - 1];
+                if (lastItem.innerText.includes("ちょっと待ってや") || lastItem.innerText.includes("組み合わせの配置")) {
+                    lastItem.remove();
+                }
+            }
+        }
+
+        function handleChatKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendChatMessage();
+            }
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const chatMessages = document.getElementById('chat-messages');
+            const userMsgHtml = `
+                <div class="flex items-start gap-2.5 justify-end">
+                    <div class="bg-brand-600 text-white rounded-2xl p-3.5 max-w-[85%] text-xs shadow-sm text-right leading-relaxed font-sans">
+                        <p class="font-bold text-brand-100 mb-1">あなた</p>
+                        ${text}
+                    </div>
+                    <div class="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center text-base shrink-0 border border-slate-300 font-sans">
+                        👤
+                    </div>
+                </div>
+            `;
+            chatMessages.insertAdjacentHTML('beforeend', userMsgHtml);
+            input.value = "";
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            appendBotMessage("👵🏻", "ウメさん", "ほう、なるほどねぇ。おばちゃんちょっと考えてみるわな...");
+
+            const systemPrompt = "You are 'Ume-san', the warm rural Japanese clothing and furniture boutique assistant. Keep speaking in your warm local Kansai/Chugoku dialect and give loving, smart shopping advice for apparel, furniture and goods.";
+            const userState = `
+【ユーザープロフィール】
+体型身長: ${userProfile.height}cm, 部屋空き幅: ${userProfile.roomWidth}cm
+質問文: ${text}
+`;
+
+            try {
+                const ans = await callGeminiAPI(systemPrompt, userState);
+                removeLastLoadingMessage();
+                appendBotMessage("👵🏻", "ウメさん", ans);
+            } catch (e) {
+                removeLastLoadingMessage();
+                appendBotMessage("👵🏻", "ウメさん", "ごめんよ、ちょっとネットの調子が悪いみたいやね。おばちゃんいつでも話聞くから、また聞いてな！");
+            }
+        }
+
+        // COORDINATION SIMULATOR ACTIONS
+        function openSelectSlotModal(slotId) {
+            activeModalSlot = slotId;
+            document.getElementById('slot-modal').classList.remove('hidden');
+        }
+
+        function closeSelectSlotModal() {
+            document.getElementById('slot-modal').classList.add('hidden');
+            activeModalSlot = null;
+        }
+
+        function selectProductForSlot(key, title, imgUrl) {
+            if (activeModalSlot) {
+                coordSlots[activeModalSlot] = { id: key, title, img: imgUrl };
+                
+                document.getElementById(`slot-${activeModalSlot}-empty`).classList.add('hidden');
+                
+                const activeDiv = document.getElementById(`slot-${activeModalSlot}-active`);
+                activeDiv.classList.remove('hidden');
+                document.getElementById(`slot-${activeModalSlot}-img`).src = imgUrl;
+                document.getElementById(`slot-${activeModalSlot}-title`).innerText = title;
+
+                closeSelectSlotModal();
+            }
+        }
+
+        function clearSlot(slotId) {
+            coordSlots[slotId] = null;
+            document.getElementById(`slot-${slotId}-active`).classList.add('hidden');
+            document.getElementById(`slot-${slotId}-empty`).classList.remove('hidden');
+        }
+
+        async function diagnoseCoordinate() {
+            const hasItems = Object.values(coordSlots).some(slot => slot !== null);
+            if (!hasItems) {
+                alert("まずはコーディネート・配置に合わせたいアイテムを登録してね！");
+                return;
+            }
+
+            const coordVisual = document.getElementById('coord-visual-box');
+            const inner = document.getElementById('canvas-coord-inner');
+            coordVisual.classList.remove('hidden');
+            inner.innerHTML = "";
+
+            let isFurnitureIncluded = false;
+
+            Object.keys(coordSlots).forEach(key => {
+                const item = coordSlots[key];
+                if (item) {
+                    if (item.id === 'sofa') isFurnitureIncluded = true;
+                    inner.innerHTML += `
+                        <div class="relative bg-slate-50 border border-slate-100 p-2.5 rounded-xl shadow-sm flex flex-col items-center max-w-[110px] animate-pulse">
+                            <span class="absolute top-1 right-1 bg-emerald-500 text-white text-[8px] px-1 rounded-full"><i class="fa-solid fa-wand-magic-sparkles"></i> 透過</span>
+                            <img src="${item.img}" alt="flatlay" class="w-16 h-16 object-contain">
+                            <span class="text-[9px] text-slate-500 truncate w-full mt-1.5 font-bold">${item.title}</span>
+                        </div>
+                    `;
+                }
+            });
+
+            // Adjust visuals titles
+            if (isFurnitureIncluded) {
+                document.getElementById('visualizer-overlay-title').innerText = "🏡 お部屋の中のレイアウト・サイズ比較シミュレーション";
+            } else {
+                document.getElementById('visualizer-overlay-title').innerText = "👚 お部屋平置き・切り抜きシミュレーションイメージ";
+            }
+
+            appendBotMessage("👵🏻", "ウメさん", "組み合わせの配置バランス、サイズ、使いやすさをじっくり品定めしとるよ。ちょっと待ってな...");
+
+            const systemPrompt = `
+You are 'Ume-san', the expert boutique grandmother from rural Japan. Analyze the combination of clothing, furniture, or bags. 
+Provide loving advice about color scheme harmony, spatial scale mismatches, layering issues, or weight balance. Speak in Chugoku/Kansai dialect.
+`;
+
+            let coordDetails = "";
+            Object.keys(coordSlots).forEach(key => {
+                const item = coordSlots[key];
+                if (item) {
+                    coordDetails += `- アイテム: ${item.title} (${mockProducts[item.id]?.material || "標準素材"})\n`;
+                }
+            });
+
+            const promptText = `
+【ユーザー体型・お部屋許容】
+身長: ${userProfile.height}cm
+ソファ置き場許容幅: ${userProfile.roomWidth}cm
+
+【組み合わせした商品】
+${coordDetails}
+
+全体の色のバランス、サイズ感、または服と小物のコーディネート、あるいは部屋の家具配置のバランスについて、温かく日本語150文字〜250文字でおばあちゃん店員として優しくアドバイスしてください。
+`;
+
+            try {
+                const responseText = await callGeminiAPI(systemPrompt, promptText);
+                removeLastLoadingMessage();
+                appendBotMessage("👵🏻", "ウメさん", responseText);
+            } catch (e) {
+                console.error("API error for coordination:", e);
+                removeLastLoadingMessage();
+                let fallback = "わぁ、良い組み合わせを選んだね！これなら実物同士も色合いのなじみがよくて、お部屋もおしゃれに仕上がるよ。ウメさん大太鼓判や！";
+                if (isFurnitureIncluded) {
+                    fallback = `🛋️ ソファとデイパックの組み合わせ、おうちでのんびり旅の計画を立てるのにピッタリやね！モスグリーンとスレートのコンビは、お部屋の中が一気に落ち着いたリラックス空間になるで。おばちゃんお勧めや！`;
+                }
+                appendBotMessage("👵🏻", "ウメさん", fallback);
+            }
+        }
+    </script>
+</body>
+</html>
